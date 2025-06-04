@@ -1,0 +1,4 @@
+github.com/VU-ASE/rovercom v1.5.1 h1:2lbaZ0ZS1AC8XamyBzCKAsvKX7JFiTibS/fdWdKRwtU=
+github.com/VU-ASE/rovercom v1.5.1/go.mod h1:1T9bXpOPMMkubm6YBa847vseBRALFzq8lkDx96w0Hr8=
+google.golang.org/protobuf v1.34.2 h1:6xV6lTsCfpGD21XK49h7MhtcApnLqkfYgPcdHftf6hg=
+google.golang.org/protobuf v1.34.2/go.mod h1:qYOHts0dSfpeUzUFpOMr/WGzszTmLH+DiWniOlNbLDw=

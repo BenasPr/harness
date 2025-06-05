@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
 	"log"
 	"net"
 	"time"
+	"strconv"
 
 	//"vu/ase/transceiver/src/serverconnection"
 	//"vu/ase/transceiver/src/state"
@@ -12,6 +14,18 @@ import (
 )
 
 func main() {
+	fuzzArg := os.Args[1]
+
+	value, err := strconv.ParseFloat(fuzzArg, 32)
+	if err != nil {
+		log.Fatalf("Error converting argument to float: %v", err)
+	}
+
+	// Convert float64 to float32
+	fuzzValue := float32(value)
+
+
+
 	tuning := &pb_tuning.TuningState{
 		Timestamp: uint64(time.Now().UnixMilli()),
 		DynamicParameters: []*pb_tuning.TuningState_Parameter{
@@ -19,7 +33,7 @@ func main() {
 				Parameter: &pb_tuning.TuningState_Parameter_Number{
 					Number: &pb_tuning.TuningState_Parameter_NumberParameter{
 						Key:   "kp",
-						Value: 0.002,
+						Value: fuzzValue,
 					},
 				},
 			},

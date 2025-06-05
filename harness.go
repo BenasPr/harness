@@ -14,7 +14,29 @@ import (
 )
 
 func main() {
-	fuzzArg := os.Args[1]
+	// fuzzArg := os.Args[1]
+
+	// value, err := strconv.ParseFloat(fuzzArg, 32)
+	// if err != nil {
+	// 	log.Fatalf("Error converting argument to float: %v", err)
+	// }
+
+	// // Convert float64 to float32
+	// fuzzValue := float32(value)
+
+
+	fuzzArg := ""
+	if len(os.Args) > 1 {
+		fuzzArg = os.Args[1]
+	} else {
+		// If no argument is provided, read from stdin
+		data := make([]byte, 256) // Adjust size as needed
+		n, err := os.Stdin.Read(data)
+		if err != nil {
+			log.Fatalf("Error reading from stdin: %v", err)
+		}
+		fuzzArg = string(data[:n - 1])
+	}
 
 	value, err := strconv.ParseFloat(fuzzArg, 32)
 	if err != nil {

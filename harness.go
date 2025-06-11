@@ -1,11 +1,13 @@
 package main
 
 import (
-	"os"
 	"log"
 	"net"
-	"time"
+	"os"
 	"strconv"
+
+	"syscall"
+	"time"
 
 	//"vu/ase/transceiver/src/serverconnection"
 	//"vu/ase/transceiver/src/state"
@@ -24,7 +26,6 @@ func main() {
 	// // Convert float64 to float32
 	// fuzzValue := float32(value)
 
-
 	fuzzArg := ""
 	if len(os.Args) > 1 {
 		fuzzArg = os.Args[1]
@@ -35,7 +36,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Error reading from stdin: %v", err)
 		}
-		fuzzArg = string(data[:n - 1])
+		fuzzArg = string(data[:n-1])
 	}
 
 	value, err := strconv.ParseFloat(fuzzArg, 32)
@@ -46,28 +47,27 @@ func main() {
 	// Convert float64 to float32
 	fuzzValue := float32(value)
 
-
-
 	tuning := &pb_tuning.TuningState{
 		Timestamp: uint64(time.Now().UnixMilli()),
 		DynamicParameters: []*pb_tuning.TuningState_Parameter{
 			{
 				Parameter: &pb_tuning.TuningState_Parameter_Number{
 					Number: &pb_tuning.TuningState_Parameter_NumberParameter{
-						Key:   "kp",
+						Key:   "speed",
 						Value: fuzzValue,
 					},
 				},
 			},
 		},
 	}
+	syscall.Kill(syscall.Getpid(), syscall.SIGSEGV)
 
 	data, err := proto.Marshal(tuning)
 	if err != nil {
 		log.Fatalf("Failed to marshal tuning: %v", err)
 	}
 
-	conn, err := net.Dial("tcp", "192.168.0.121:9000")
+	conn, err := net.Dial("tcp", "192.168.0.146:9000")
 	if err != nil {
 		log.Fatalf("Failed to connect to transceiver: %v", err)
 	}

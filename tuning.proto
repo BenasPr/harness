@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package protobuf_msgs;
+
+option go_package = "ase/pb_tuning";
+
+//
+// This defines runtime tuning that can be applied to the pipeline.
+// (set through the web-monitor, distributed using the transceiver service)
+//
+
+message TuningState {
+    uint64 timestamp = 1; // increased when the state changes, used to prevent unnecessary updates (so *not* in milliseconds since epoch)
+
+    message Parameter {
+        // note: it may seem weird to not extract the key from the oneof, but this is so that the parser can easily determine the type of the parameter
+        // extracting it to a separate field on the same level as oneof would make it ambiguous
+        message NumberParameter {
+            string key = 1;
+            float value = 2;
+        }
+        message StringParameter {
+            string key = 1;
+            string value = 2;
+        }
+
+        oneof parameter {
+            NumberParameter number = 1;
+            StringParameter string = 3;
+        }
+    }
+
+    repeated Parameter dynamicParameters = 2;
+}

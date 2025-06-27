@@ -1,82 +1,88 @@
 package main
 
 import (
-	"log"
-	"net"
-	"os"
-	"strconv"
-
-	"syscall"
-	"time"
-
-	//"vu/ase/transceiver/src/serverconnection"
-	//"vu/ase/transceiver/src/state"
-	pb_tuning "github.com/VU-ASE/rovercom/packages/go/tuning"
-	"google.golang.org/protobuf/proto"
+    "fmt"
+    "io/ioutil"
+    "net"
+    "os"
+    "os/exec"
+    "path/filepath"
+    "time"
 )
 
 func main() {
-	// fuzzArg := os.Args[1]
+    // Read input from stdin
+    inputBuf, err := ioutil.ReadAll(os.Stdin)
+    if err != nil {
+        fmt.Fprintln(os.Stderr, "Error reading input:", err)
+        return
+    }
 
-	// value, err := strconv.ParseFloat(fuzzArg, 32)
-	// if err != nil {
-	// 	log.Fatalf("Error converting argument to float: %v", err)
-	// }
+    if len(inputBuf) == 0 {
+        fmt.Fprintln(os.Stderr, "Empty input")
+        return
+    }
 
-	// // Convert float64 to float32
-	// fuzzValue := float32(value)
+    stateFile := "connection_state.flag"
+    wasConnectedBefore := false
 
-	fuzzArg := ""
-	if len(os.Args) > 1 {
-		fuzzArg = os.Args[1]
-	} else {
-		// If no argument is provided, read from stdin
-		data := make([]byte, 256) // Adjust size as needed
-		n, err := os.Stdin.Read(data)
-		if err != nil {
-			log.Fatalf("Error reading from stdin: %v", err)
-		}
-		fuzzArg = string(data[:n-1])
-	}
+    // Check if the state file exists and read its content
+    if _, err := os.Stat(stateFile); err == nil {
+        data, err := ioutil.ReadFile(stateFile)
+        if err == nil && len(data) > 0 {
+            wasConnectedBefore = data[0] == '1'
+        }
+    }
 
-	value, err := strconv.ParseFloat(fuzzArg, 32)
-	if err != nil {
-		log.Fatalf("Error converting argument to float: %v", err)
-	}
+    // Create a TCP connection
+    conn, err := net.Dial("tcp", "192.168.0.146:9000")
+    if err != nil {
+        // If connection fails, write "0" to state file and run the script
+        ioutil.WriteFile(stateFile, []byte("0"), 0644)
 
-	// Convert float64 to float32
-	fuzzValue := float32(value)
+        // Execute the start_pipeline.sh script
+        cmd := exec.Command("./start_pipeline.sh")
+        if err := cmd.Run(); err != nil {
+            fmt.Fprintln(os.Stderr, "Failed to start pipeline:", err)
+        }
 
-	tuning := &pb_tuning.TuningState{
-		Timestamp: uint64(time.Now().UnixMilli()),
-		DynamicParameters: []*pb_tuning.TuningState_Parameter{
-			{
-				Parameter: &pb_tuning.TuningState_Parameter_Number{
-					Number: &pb_tuning.TuningState_Parameter_NumberParameter{
-						Key:   "speed",
-						Value: fuzzValue,
-					},
-				},
-			},
-		},
-	}
-	syscall.Kill(syscall.Getpid(), syscall.SIGSEGV)
+        if wasConnectedBefore {
+            // Create crashes directory if it doesn't exist
+            if err := os.MkdirAll("crashes", os.ModePerm); err != nil {
+                fmt.Fprintln(os.Stderr, "Failed to create crashes directory:", err)
+            }
 
-	data, err := proto.Marshal(tuning)
-	if err != nil {
-		log.Fatalf("Failed to marshal tuning: %v", err)
-	}
+            crashFile := filepath.Join("crashes", fmt.Sprintf("crash_%d.bin", time.Now().Unix()))
+            if err := os.Rename("last_input.bin", crashFile); err != nil {
+                fmt.Fprintln(os.Stderr, "Failed to save crash input:", err)
+            }
 
-	conn, err := net.Dial("tcp", "192.168.0.146:9000")
-	if err != nil {
-		log.Fatalf("Failed to connect to transceiver: %v", err)
-	}
-	defer conn.Close()
+            // panic("Crash") // Simulate throwing an exception
+			x := 1
+    		y := 0
+    		fmt.Println(x / y)
+        } else {
+            return
+        }
+    }
+    // defer conn.Close()
 
-	_, err = conn.Write(data)
-	if err != nil {
-		log.Fatalf("Failed to send data: %v", err)
-	}
+    // If connected successfully, write "1" to state file
+    ioutil.WriteFile(stateFile, []byte("1"), 0644)
 
-	log.Printf("TuningState sent to transceiver successfully.")
+    // Send the input buffer over the connection
+    totalSent := 0
+    toSend := len(inputBuf)
+    for totalSent < toSend {
+        sent, err := conn.Write(inputBuf[totalSent:])
+        if err != nil {
+            fmt.Fprintln(os.Stderr, "Error sending data:", err)
+            return
+        }
+        totalSent += sent
+    }
+
+    // Write the input buffer to last_input.bin
+    ioutil.WriteFile("last_input.bin", inputBuf, 0644)
 }
+

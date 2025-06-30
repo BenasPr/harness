@@ -8,14 +8,43 @@
 #include <fstream>
 #include <filesystem>
 #include <ctime>
-#include <cstdlib>
+#include <cstring>
+#include "tuning.pb.h" // Update this to your actual protobuf header path
 
-int main() {
+int main(int argc, char* argv[]) {
     std::vector<char> inputBuf((std::istreambuf_iterator<char>(std::cin)),
                                 std::istreambuf_iterator<char>());
 
-    if (inputBuf.empty()) {
-        std::cerr << "Empty input\n";
+    if (inputBuf.size() != 7 * sizeof(double)) {
+        std::cerr << "Expected 56 bytes (7 doubles), got " << inputBuf.size() << "\n";
+        return 1;
+    }
+
+    std::vector<double> values(7);
+    std::memcpy(values.data(), inputBuf.data(), 56);
+
+    std::vector<std::string> keys = {
+        "speed",
+        "kp",
+        "kd",
+        "ki",
+        "servo-trim",
+        "threshhold-value",
+        "servo-scaler"
+    };
+
+    protobuf_msgs::TuningState tuning;
+    for (size_t i = 0; i < 7; ++i) {
+        auto* param = tuning.add_dynamicparameters();
+        auto* numberParam = new protobuf_msgs::TuningState::Parameter::NumberParameter();
+        numberParam->set_key(keys[i]);
+        numberParam->set_value(values[i]);
+        param->set_allocated_number(numberParam);
+    }
+
+    std::string serialized;
+    if (!tuning.SerializeToString(&serialized)) {
+        std::cerr << "Failed to serialize protobuf message\n";
         return 1;
     }
 
@@ -26,6 +55,7 @@ int main() {
         in >> c;
         wasConnectedBefore = (c == '1');
     }
+ 
 
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
@@ -59,9 +89,10 @@ int main() {
     }
 
     std::ofstream(stateFile) << "1";
+
     ssize_t total_sent = 0;
-    ssize_t to_send = inputBuf.size();
-    const char* buffer = inputBuf.data();
+    ssize_t to_send = serialized.size();
+    const char* buffer = serialized.data();
     while (total_sent < to_send) {
         ssize_t sent = send(sock, buffer + total_sent, to_send - total_sent, 0);
         if (sent <= 0) {

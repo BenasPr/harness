@@ -45,10 +45,7 @@ int main() {
             std::filesystem::create_directory("crashes");
 
             std::string crashFile = "crashes/crash_" + std::to_string(std::time(nullptr)) + ".bin";
-            std::string scpCommand = "sshpass -p 'debix' scp debix@192.168.0.146:/tmp/last_input.bin " + crashFile;
-            std::system(scpCommand.c_str());
-        } else {
-            system("./start_pipeline.sh");
+            ststem("./start_pipeline.sh");
         }return 1;
     }
 
@@ -73,3 +70,4 @@ int main() {
 
     return 0;
 }
+

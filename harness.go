@@ -23,7 +23,7 @@ func main() {
         return
     }
 
-    stateFile := "connection_state.flag"
+    stateFile := "pipeline_status.flag"
     wasConnectedBefore := false
 
     // Check if the state file exists and read its content

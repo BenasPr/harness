@@ -164,7 +164,7 @@ func main() {
     }
 
     // Handle connection state
-    stateFile := "connection_state.flag"
+    stateFile := "pipeline_status.flag"
     wasConnectedBefore := false
     if data, err := ioutil.ReadFile(stateFile); err == nil && len(data) > 0 {
         wasConnectedBefore = (data[0] == '1')
